@@ -89,6 +89,12 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+  // 初始化报警字段 (添加以下四行)
+  p->alarmticks = 0;
+  p->alarmhandler = 0;
+  p->remaining_ticks = 0;
+  p->saved_eip = 0;
+
   release(&ptable.lock);
 
   // Allocate kernel stack.

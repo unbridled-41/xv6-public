@@ -49,6 +49,11 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  
+  int alarmticks;             // 报警间隔
+  void (*alarmhandler)();     // 处理函数指针
+  int remaining_ticks;        // 剩余 ticks 计数
+  uint saved_eip;             // 保存的原指令指针
 };
 
 // Process memory is laid out contiguously, low addresses first:

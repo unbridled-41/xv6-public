@@ -55,6 +55,26 @@ trap(struct trapframe *tf)
       release(&tickslock);
     }
     lapiceoi();
+
+  struct proc *p = myproc();
+    if(p != 0 && (tf->cs & 3) == 3) {
+        if(p->alarmticks > 0) {
+            p->remaining_ticks--;
+            if(p->remaining_ticks <= 0) {
+                // 保存当前指令指针并设置处理函数
+                uint saved_eip = tf->eip;
+                tf->eip = (uint)p->alarmhandler;
+                // 将返回地址压入用户栈
+                tf->esp -= 4;
+                if(copyout(p->pgdir, tf->esp, (char*)&saved_eip, 4) < 0) {
+                    p->killed = 1;
+                }
+                // 重置计数器
+                p->remaining_ticks = p->alarmticks;
+            }
+        }
+    }
+
     break;
   case T_IRQ0 + IRQ_IDE:
     ideintr();

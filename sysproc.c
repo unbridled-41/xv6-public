@@ -130,3 +130,23 @@ sys_dup2(void)
         return -1; // 目标文件描述符超出范围
     }
 }
+
+int
+sys_alarm(void) {
+  int ticks;
+  void (*handler)();
+
+  // 从用户空间获取参数
+  if (argint(0, &ticks) < 0)     // 获取报警间隔
+    return -1;
+  if (argptr(1, (char**)&handler, 1) < 0)  // 获取处理函数指针
+    return -1;
+
+  // 保存到当前进程的 proc 结构体
+  struct proc *p = myproc();
+  p->alarmticks = ticks;
+  p->alarmhandler = handler;
+  p->remaining_ticks = ticks;    // 初始化剩余计数
+  return 0;
+}
+
