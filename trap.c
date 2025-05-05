@@ -13,6 +13,7 @@ struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
+int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
 
 void
 tvinit(void)
@@ -97,6 +98,36 @@ trap(struct trapframe *tf)
             cpuid(), tf->cs, tf->eip);
     lapiceoi();
     break;
+  case T_PGFLT: {
+  char *mem;
+  uint a;
+  struct proc *p = myproc();
+  uint va = rcr2(); // 获取触发缺页的虚拟地址
+
+  a = PGROUNDDOWN(va);
+
+  // 检查是否在用户态且地址有效
+  if ((tf->cs & 3) != 3 || va >= p->sz) {
+    p->killed = 1;
+    break;
+  }
+
+  // 分配物理页
+  mem = kalloc();
+  if (mem == 0) {
+    p->killed = 1;
+    break;
+  }
+  memset(mem, 0, PGSIZE);
+
+  // 映射到用户页表
+  if (mappages(p->pgdir, (char*)a, PGSIZE, V2P(mem), PTE_W | PTE_U) < 0) {
+    kfree(mem);
+    p->killed = 1;
+  }
+
+  break;
+}
 
   //PAGEBREAK: 13
   default:
